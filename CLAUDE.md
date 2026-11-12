@@ -34,13 +34,14 @@ python -m autoval.autoval_test_runner <dotted.test.module> --config ./hosts.json
 python -m autoval.autoval_test_runner --suite path/to/suite.yaml --config ./hosts.json
 ```
 - `SITE_SETTINGS` must be exported first. Keys: `control_server_logdir`, `control_server_tmpdir`, `dut_logdir`, `dut_tmpdir`, `resultsdir`, `ssh_key_path` (list), `plugin_config_path`, `repository_dir`, `test_utils_plugin_config_path`, `cleanup_dut_logdirs`, optional `yum_repo`.
-- `hosts.json` has a `hosts` list; each entry uses `hostname`, optional `oob_addr` (BMC), `username`, `password`, `sudo`, `local_mode`, `force_ssh`. Without `oob_addr`, BMC commands run on the controller.
+- `hosts.json` has a `hosts` list; each entry uses `hostname`, `oob_addr` (BMC; currently required, see below), `username`, `password`, `sudo`, `local_mode`, `force_ssh`.
+- Known bug (Nov 2026): a host entry without `oob_addr` crashes in `lib/host/bmc.py` (`BMC.__init__` reads `connection.hostname` while the connection is `None`). Workaround: a placeholder `oob_addr`. Fix: guard `BMC.__init__` for a `None` connection.
 - Add `"enable_ocp_diag_output": true` to a control file to get OCP Diag JSONL output.
 - Our team runs each host on its own; multi-host runs aren't used.
 - Never run tests against real hosts unless the user explicitly asks and names the host. SSD tests built on this framework are destructive.
 
 ## Controller dependencies outside Python
-The framework shells out on the controller to `sshpass`, `ssh`/`scp`/`rsync`, `ssh-agent`/`ssh-add`, `ping`/`ping6`, `tar`, and `ipmitool` (BMC without `oob_addr`). IPv6 is assumed in places (`scp -6`, `ping6`). On CentOS Stream 10, `sshpass` comes from EPEL 10 (needs CRB enabled).
+The framework shells out on the controller to `sshpass`, `ssh`/`scp`/`rsync`, `ssh-agent`/`ssh-add`, `ping`/`ping6`, `tar`, and `ipmitool`. IPv6 is assumed in places (`scp -6`, `ping6`). On CentOS Stream 10, `sshpass` comes from EPEL 10 (needs CRB enabled).
 
 ## Tests
 Core has no unit-test suite; the `test_*.py` files under `lib/` are framework modules, not tests. Verify changes by:

@@ -110,7 +110,7 @@ This guide rebuilds a working AutoVal environment from bare metal: one **control
 | `sshpass` (EPEL) | `scp`/`rsync`/`ssh` to DUTs and BMCs with a password (`transport/ssh.py`, `host/bmc.py`) |
 | `rsync`, `tar` | Copying tools to DUTs, archiving logs into `resultsdir` (`site_utils.py`) |
 | `iputils` | `ping`/`ping6` reachability check before every test (`host/host.py`) |
-| `ipmitool`, `lshw` | BMC commands run locally when a host has no `oob_addr` (`host/bmc.py`) |
+| `ipmitool`, `lshw` | BMC helper commands (`host/bmc.py`) |
 | `jq` | Used by some storage\_hw\_eng tests and handy for checking JSON configs |
 | `nfs-utils` | Serving `/shared/autoval` (Part 2) |
 | `createrepo_c`, `dnf-utils`, `rpm-build` | Building the `autoval-tools` repo and the fiosynth RPM (Part 3) |
@@ -327,14 +327,14 @@ AutoVal connects to DUTs with paramiko as **root**, using the key files listed i
    ```
 
    Paramiko auto-adds unknown host keys, so this step is mostly a check. When a DUT is reinstalled and its host key changes, AutoVal runs `ssh-keygen -R <host>` and retries. You can also clear it yourself with `ssh-keygen -R dut01`.
-4. **BMC access** (only for hosts with a BMC). Per host, `hosts.json` takes `oob_addr`, `oob_username` and `oob_password` (or `oob1_addr`, `oob1_username`, ... for extra BMCs). Without credentials the code uses OpenBMC defaults (`root` / `0penBmc`). Check from the controller:
+4. **BMC access**. Per host, `hosts.json` takes `oob_addr`, `oob_username` and `oob_password` (or `oob1_addr`, `oob1_username`, ... for extra BMCs). Without credentials the code uses OpenBMC defaults (`root` / `0penBmc`). Check from the controller:
 
    ```bash
    sshpass -p '<bmc-password>' ssh -o StrictHostKeyChecking=no root@dut01-bmc 'hostname'
    ping -c 3 dut01-bmc      # or ping6
    ```
 
-   If a host has no `oob_addr`, BMC commands such as `ipmitool` run on the controller itself, in-band style. Make sure `ipmitool` is installed there (Part 1).
+   **Every host entry currently needs an `oob_addr`.** In the current code, a host without one crashes before the test starts, with `AttributeError: 'NoneType' object has no attribute 'hostname'` from `host/bmc.py` (verified Nov 2026). `BMC.__init__` reads the connection's hostname before checking whether a BMC connection exists. Until that's fixed, a DUT with no BMC needs a placeholder `oob_addr`, such as the DUT's own hostname, and must not run BMC or power-cycle tests. The proper fix is a small guard in `BMC.__init__`.
 5. **Older BMCs and crypto policy.** Stream 10's default crypto policy rejects SHA-1 signatures and DSA keys. If an old BMC fails with `no matching host key type` or a signature error, add a per-host exception in `~/.ssh/config` rather than weakening the system-wide policy:
 
    ```text
@@ -656,6 +656,7 @@ Where to look when something fails: the console output first, then the test's fo
 | `REMOTE HOST IDENTIFICATION HAS CHANGED` after a reinstall | Stale host key | `ssh-keygen -R dut01.example.com` |
 | fio version check fails | DUT or controller fio older than 3.32 (default `fio_ver`) | Put a newer fio in the repo. Install the same version on the controller for `remote_fio` |
 | `mkfs.btrfs: command not found` | btrfs isn't available on Stream 10 | Use `xfs` or `ext4` in the control file |
+| `AttributeError: 'NoneType' object has no attribute 'hostname'` (host/bmc.py) before the test starts | Host entry has no `oob_addr` | Add `oob_addr` (the BMC, or the DUT's own hostname as a placeholder if it has no BMC), or apply the `BMC.__init__` fix |
 
 ## Reference
 
