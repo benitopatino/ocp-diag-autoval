@@ -15,7 +15,7 @@ Core AutoVal hardware-validation test framework (PyPI name `ocptv-autoval`, impo
 - `plugins/` — `plugin_manager.py` + `plugin_config.json` (swappable implementations, e.g. `config_datasource`).
 - `cfg/site_settings/` — `site_settings.json` (default) and `site_settings_devserver.json`; `cfg/thresholds/` (e.g. `latency_monitor.json`).
 - `tests/connect_test.py` — the only test in core: SSH to the DUT and ping the BMC. Use it as a smoke test and a minimal example.
-- `documentation/` — `autoval_core.md` (architecture, site settings, OCP Diag output), `contribution_guide.md` (how to write a test), `centos10_migration_plan.md` (CentOS Stream 9 → 10 plan for controller and DUTs).
+- `documentation/` — `autoval_core.md` (architecture, site settings, OCP Diag output), `contribution_guide.md` (how to write a test), `centos10_migration_plan.md` (CentOS Stream 9 → 10 plan for controller and DUTs), `autoval_setup_guide_centos10.md` (step-by-step controller + DUT setup on Stream 10).
 
 ## Setup
 ```bash
